@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>virupakshi@dev — terminal portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;
+  --border:#30363d;
+  --green:#39d353;--green-dim:#26a641;
+  --cyan:#58d6f5;--yellow:#e3b341;--red:#f85149;
+  --purple:#bc8cff;--white:#e6edf3;--gray:#8b949e;--orange:#ffa657;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--white);
+  font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.55;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);
+  pointer-events:none;z-index:9999;
+}
+.window{
+  display:flex;flex-direction:column;
+  max-width:920px;margin:30px auto;
+  border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;height:calc(100vh - 60px);
+  box-shadow:0 0 0 1px var(--border),0 24px 80px rgba(0,0,0,0.7);
+}
+.titlebar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;gap:10px;
+  flex-shrink:0;user-select:none;
+}
+.dots{display:flex;gap:7px}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot.r{background:#ff5f57}.dot.y{background:#ffbd2e}.dot.g{background:#28c941}
+.tab-title{font-size:12px;color:var(--gray);margin-left:auto;letter-spacing:0.04em}
+
+.hints{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:6px 20px;flex-shrink:0;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+}
+.hint-cmd{
+  font-size:11px;color:var(--gray);cursor:pointer;
+  padding:2px 8px;border:1px solid transparent;border-radius:4px;transition:all 0.15s;
+}
+.hint-cmd:hover{border-color:var(--border);color:var(--cyan)}
+.hint-cmd span{color:var(--green);margin-right:4px}
+
+.output-area{
+  flex:1;overflow-y:auto;padding:20px 24px 8px;
+  scroll-behavior:smooth;
+}
+.output-area::-webkit-scrollbar{width:6px}
+.output-area::-webkit-scrollbar-track{background:transparent}
+.output-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.input-row{
+  display:flex;align-items:center;gap:0;
+  padding:10px 24px 16px;flex-shrink:0;
+  border-top:1px solid var(--border);background:var(--bg);
+}
+.ps1{white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:4px;padding-right:6px}
+.ps1-u{color:var(--green);font-weight:500}
+.ps1-a{color:var(--gray)}
+.ps1-h{color:var(--cyan);font-weight:500}
+.ps1-p{color:var(--purple)}
+.ps1-s{color:var(--green)}
+#cmd-input{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:'JetBrains Mono',monospace;font-size:13.5px;
+  color:var(--white);caret-color:var(--green);
+}
+.autocomplete-box{
+  background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  padding:4px 0;font-size:12px;
+  display:none;margin-bottom:4px;
+}
+.ac-item{
+  padding:4px 14px;color:var(--gray);cursor:pointer;transition:background 0.1s;
+}
+.ac-item:hover,.ac-item.selected{background:var(--bg3);color:var(--white)}
+.ac-item .ac-match{color:var(--green)}
+
+/* OUTPUT LINES */
+.line{margin-bottom:3px;display:flex;flex-wrap:wrap;gap:5px;align-items:baseline}
+.line.gap{margin-bottom:14px}
+.line.section{margin-top:24px;margin-bottom:3px}
+.cmd-echo{color:var(--white)}
+.arg{color:var(--yellow)}
+.flag{color:var(--orange)}
+.comment{color:var(--gray);font-style:italic}
+.out{color:var(--white);padding-left:2px}
+.err{color:var(--red)}
+.success{color:var(--green)}
+
+.kv{display:flex;gap:10px;margin-bottom:3px}
+.k{color:var(--cyan);min-width:118px;flex-shrink:0}
+.v{color:var(--white)}
+.v a{color:var(--cyan);text-decoration:none}
+.v a:hover{text-decoration:underline}
+
+.sec{
+  color:var(--green);font-weight:700;font-size:12px;letter-spacing:0.1em;
+  margin:12px 0 8px;display:flex;align-items:center;gap:8px;
+}
+.sec::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.tag{
+  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+  padding:1px 9px;font-size:11.5px;color:var(--cyan);
+}
+.tag.lang{color:var(--yellow)}.tag.cloud{color:var(--orange)}.tag.ai{color:var(--purple)}
+
+.exp-bar{border-left:2px solid var(--green);padding-left:14px;margin-bottom:18px}
+.exp-t{color:var(--yellow);font-weight:700}
+.exp-m{color:var(--gray);font-size:12px;margin-bottom:6px}
+.exp-i{display:flex;gap:6px;font-size:12.5px;margin-bottom:3px}
+.exp-i::before{content:'▸';color:var(--green);flex-shrink:0}
+.exp-impact{color:var(--green);font-size:12px;margin-top:6px}
+
+.proj-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:14px 18px;margin-bottom:10px;transition:border-color 0.2s;
+}
+.proj-card:hover{border-color:var(--green-dim)}
+.proj-t{color:var(--yellow);font-weight:700;font-size:14px;margin-bottom:4px}
+.proj-t a{color:inherit;text-decoration:none}.proj-t a:hover{color:var(--cyan)}
+.proj-s{color:var(--gray);font-size:11.5px;margin-bottom:6px}
+.proj-d{font-size:12.5px;line-height:1.65}
+.proj-impact{color:var(--green);font-size:12px;margin-top:6px}
+
+.stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.stat{
+  background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  padding:10px 16px;text-align:center;flex:1;min-width:100px;
+}
+.stat-n{color:var(--green);font-size:20px;font-weight:700}
+.stat-l{color:var(--gray);font-size:11px;margin-top:1px}
+
+.badge{
+  display:inline-block;background:rgba(57,211,83,0.12);
+  border:1px solid var(--green-dim);color:var(--green);
+  font-size:11px;border-radius:999px;padding:1px 9px;margin-left:6px;vertical-align:middle;
+}
+
+.cursor-blink{
+  display:inline-block;width:7px;height:14px;
+  background:var(--green);vertical-align:middle;
+  animation:blink 1s step-end infinite;margin-left:1px;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.typing-line{display:block;white-space:pre-wrap;word-break:break-all}
+
+@media(max-width:600px){
+  .window{margin:0;border-radius:0;height:100vh}
+  .output-area{padding:14px 14px 4px}
+  .input-row{padding:8px 14px 12px}
+  .kv{flex-direction:column;gap:1px}.k{min-width:unset}
+}
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="titlebar">
+    <div class="dots">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    </div>
+    <div style="margin-left:14px;font-size:12px;color:var(--gray)">virupakshi@dev — zsh — portfolio</div>
+    <div class="tab-title">try: help · whoami · skills · projects · experience · contact</div>
+  </div>
+
+  <div class="hints" id="hints">
+    <div class="hint-cmd" data-cmd="help"><span>$</span>help</div>
+    <div class="hint-cmd" data-cmd="whoami"><span>$</span>whoami</div>
+    <div class="hint-cmd" data-cmd="skills"><span>$</span>skills</div>
+    <div class="hint-cmd" data-cmd="experience"><span>$</span>experience</div>
+    <div class="hint-cmd" data-cmd="projects"><span>$</span>projects</div>
+    <div class="hint-cmd" data-cmd="stats"><span>$</span>stats</div>
+    <div class="hint-cmd" data-cmd="education"><span>$</span>education</div>
+    <div class="hint-cmd" data-cmd="contact"><span>$</span>contact</div>
+    <div class="hint-cmd" data-cmd="clear"><span>$</span>clear</div>
+  </div>
+
+  <div class="output-area" id="out"></div>
+
+  <div style="padding:0 24px">
+    <div class="autocomplete-box" id="ac-box"></div>
+  </div>
+
+  <div class="input-row">
+    <div class="ps1">
+      <span class="ps1-u">virupakshi</span>
+      <span class="ps1-a">@</span>
+      <span class="ps1-h">dev</span>
+      <span class="ps1-p">~</span>
+      <span class="ps1-s">❯</span>
+    </div>
+    <input id="cmd-input" type="text" autocomplete="off" spellcheck="false" autofocus placeholder="type a command or click above...">
+  </div>
+</div>
+
+<script>
+const out = document.getElementById('out');
+const inp = document.getElementById('cmd-input');
+const acBox = document.getElementById('ac-box');
+
+const COMMANDS = {
+  help: cmdHelp,
+  whoami: cmdWhoami,
+  skills: cmdSkills,
+  experience: cmdExperience,
+  projects: cmdProjects,
+  stats: cmdStats,
+  education: cmdEducation,
+  contact: cmdContact,
+  clear: cmdClear,
+  ls: cmdLs,
+  pwd: cmdPwd,
+  echo: cmdEcho,
+  date: cmdDate,
+  uname: cmdUname,
+};
+
+const CMD_NAMES = Object.keys(COMMANDS);
+let history = [];
+let histIdx = -1;
+let acIdx = -1;
+let acMatches = [];
+let typing = false;
+
+function ps1Html() {
+  return `<span class="ps1-u">virupakshi</span><span class="ps1-a">@</span><span class="ps1-h">dev</span><span class="ps1-p"> ~</span><span class="ps1-s"> ❯</span>`;
+}
+
+function append(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  out.appendChild(d);
+  out.scrollTop = out.scrollHeight;
+}
+
+function appendLine(html, classes='') {
+  append(`<div class="line ${classes}">${html}</div>`);
+}
+
+async function typeCommand(cmd, delay=28) {
+  return new Promise(res => {
+    const div = document.createElement('div');
+    div.className = 'line gap';
+    div.innerHTML = ps1Html() + ' <span class="typing-line" id="typing-span"></span><span class="cursor-blink" id="typing-cursor"></span>';
+    out.appendChild(div);
+    out.scrollTop = out.scrollHeight;
+    const span = div.querySelector('#typing-span');
+    const cursor = div.querySelector('#typing-cursor');
+    let i = 0;
+    function tick() {
+      if (i <= cmd.length) {
+        span.textContent = cmd.slice(0, i);
+        i++;
+        out.scrollTop = out.scrollHeight;
+        setTimeout(tick, delay + Math.random()*18);
+      } else {
+        cursor.remove();
+        res();
+      }
+    }
+    tick();
+  });
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runWithAnimation(cmd, fn) {
+  if (typing) return;
+  typing = true;
+  inp.disabled = true;
+  await typeCommand(cmd);
+  await sleep(120);
+  fn();
+  await sleep(80);
+  inp.disabled = false;
+  inp.focus();
+  typing = false;
+}
+
+function execCmd(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return;
+  history.unshift(trimmed);
+  histIdx = -1;
+
+  const parts = trimmed.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  appendLine(ps1Html() + ` <span class="cmd-echo">${escHtml(trimmed)}</span>`, 'gap');
+
+  if (COMMANDS[cmd]) {
+    COMMANDS[cmd](args);
+  } else {
+    appendLine(`<span class="err">zsh: command not found: ${escHtml(cmd)}</span>`, 'gap');
+    appendLine(`<span class="out" style="color:var(--gray)">type <span style="color:var(--cyan)">help</span> to see available commands</span>`, 'gap');
+  }
+  out.scrollTop = out.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function cmdHelp() {
+  const cmds = [
+    ['whoami','→ about me + contact info'],
+    ['skills','→ technical skills breakdown'],
+    ['experience','→ work experience @ Webknot'],
+    ['projects','→ open source & side projects'],
+    ['stats','→ impact numbers & achievements'],
+    ['education','→ academic background'],
+    ['contact','→ reach me directly'],
+    ['ls','→ list sections'],
+    ['clear','→ clear terminal'],
+    ['date','→ current date'],
+    ['uname','→ system info'],
+  ];
+  appendLine(`<span style="color:var(--yellow);font-weight:700">available commands</span>`);
+  cmds.forEach(([c,d]) => {
+    appendLine(`  <span style="color:var(--green);min-width:120px;display:inline-block">${c}</span><span style="color:var(--gray)">${d}</span>`);
+  });
+  appendLine(`<span style="color:var(--gray);font-size:12px">tip: use ↑↓ for history, Tab to autocomplete</span>`, 'gap');
+}
+
+function cmdWhoami() {
+  const rows = [
+    ['name','Virupakshi K'],
+    ['role','Full-Stack Software Engineer <span class="badge">● open to work</span>'],
+    ['location','Bengaluru, Karnataka, India'],
+    ['company','Webknot Technologies'],
+    ['experience','1.5 years — production AI-integrated systems'],
+    ['email','<a href="mailto:kvirupakshi047@gmail.com">kvirupakshi047@gmail.com</a>'],
+    ['phone','+91-9019341637'],
+    ['github','<a href="https://github.com/Virupakshi047" target="_blank">github.com/Virupakshi047</a>'],
+    ['linkedin','<a href="https://linkedin.com/in/virupakshi-k" target="_blank">linkedin.com/in/virupakshi-k</a>'],
+    ['leetcode','<a href="https://leetcode.com/Virupakshi_K_047" target="_blank">Virupakshi_K_047</a>'],
+  ];
+  rows.forEach(([k,v]) => appendLine(`<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`));
+  out.querySelector('.kv:last-child') && out.appendChild(document.createElement('br'));
+  appendLine('', 'gap');
+}
+
+function cmdSkills() {
+  const sections = [
+    ['// languages', [
+      ['lang','Java'],['lang','Python'],['lang','JavaScript'],['lang','TypeScript'],
+      ['lang','C/C++'],['lang','SQL'],['lang','HTML/CSS'],
+    ]],
+    ['// frontend', [
+      ['','React.js'],['','Next.js'],['','REST API'],['','RBAC'],['','Responsive Design'],
+    ]],
+    ['// backend & db', [
+      ['','Spring Boot'],['','Node.js'],['','Express.js'],['','FastAPI'],
+      ['','PostgreSQL'],['','MySQL'],['','MongoDB'],['','Redis'],
+    ]],
+    ['// cloud & devops', [
+      ['cloud','Docker'],['cloud','Microsoft Azure'],['cloud','Nginx'],
+      ['cloud','CI/CD'],['cloud','Git/GitLab'],['cloud','Kubernetes'],
+    ]],
+    ['// ai & systems', [
+      ['ai','Groq AI'],['ai','Mistral AI'],['ai','LLM API Integration'],
+      ['ai','Apache Kafka'],['ai','Microservices'],['ai','Raft Algorithm'],
+    ]],
+  ];
+  sections.forEach(([title, tags]) => {
+    appendLine(`<div class="sec">${title}</div>`);
+    const t = tags.map(([cls,name]) => `<span class="tag ${cls}">${name}</span>`).join('');
+    appendLine(`<div class="tags">${t}</div>`);
+  });
+  appendLine('','gap');
+}
+
+function cmdExperience() {
+  appendLine(`<div class="exp-bar">
+    <div class="exp-t">Software Engineer — Webknot Technologies <span class="badge">current</span></div>
+    <div class="exp-m">Jan 2025 – Present · Bengaluru, Karnataka</div>
+    <div style="color:var(--cyan);font-size:12px;margin-bottom:6px">▶ AI Employability &amp; Placement Readiness Platform</div>
+    <div class="exp-i">Built React.js + Next.js modules for AI-powered employability platform</div>
+    <div class="exp-i">Custom pagination resume engine with 5 templates and real-time previews</div>
+    <div class="exp-i">AI insights, resume scoring, RBAC for students, faculty, and admins</div>
+    <div class="exp-impact">→ 50% less rendering latency · 35% less dev effort · 5,000+ profiles</div>
+    <div style="color:var(--cyan);font-size:12px;margin:10px 0 6px">▶ AI-Powered Pre-Sales Automation Tool</div>
+    <div class="exp-i">Full-stack tool: React.js + Java Spring Boot + Python FastAPI</div>
+    <div class="exp-i">Mistral AI to auto-refine requirements and generate business role breakdowns</div>
+    <div class="exp-i">Azure deployment: Docker, Nginx, SSO auth, PostgreSQL, versioned AI reports</div>
+    <div class="exp-impact">→ Won Internal Product Expo 2025 · 60% faster analysis · 10+ RFPs/month</div>
+  </div>`);
+}
+
+function cmdProjects() {
+  appendLine(`<div class="proj-card">
+    <div class="proj-t"><a href="https://git-pr.vercel.app" target="_blank">⬡ GitHub PR AI Documenter</a></div>
+    <div class="proj-s">Next.js · Groq AI · GitHub OAuth · Google Docs API · Drive API · Vercel</div>
+    <div class="proj-d">AI-powered PR doc tool integrating 4 APIs. Parses PR diffs → structured markdown via Groq LLM.
+    Auto-creates Google Docs with Drive folder management. Session-based auth with token refresh.</div>
+    <div class="proj-impact">→ git-pr.vercel.app · multi-user · production-grade OAuth</div>
+  </div>`);
+  appendLine(`<div class="proj-card">
+    <div class="proj-t">⬡ Namma Metro Ticketing System</div>
+    <div class="proj-s">Java · Spring Boot · Apache Kafka · MySQL · Redis · Docker</div>
+    <div class="proj-d">Microservices-based ticketing platform with 4 independent services.
+    Kafka event-driven architecture. Redis caching slashed retrieval 450ms → 85ms.
+    Idempotent payment processing prevents duplicate ticket generation.</div>
+    <div class="proj-impact">→ 81% faster retrieval · 99.5% message delivery reliability</div>
+  </div>`);
+  appendLine('','gap');
+}
+
+function cmdStats() {
+  appendLine(`<div class="stats-row">
+    <div class="stat"><div class="stat-n">450+</div><div class="stat-l">leetcode solved</div></div>
+    <div class="stat"><div class="stat-n">1428</div><div class="stat-l">contest rating</div></div>
+    <div class="stat"><div class="stat-n">60%</div><div class="stat-l">analysis time ↓</div></div>
+    <div class="stat"><div class="stat-n">5K+</div><div class="stat-l">student profiles</div></div>
+    <div class="stat"><div class="stat-n">81%</div><div class="stat-l">redis speed ↑</div></div>
+  </div>`);
+  appendLine(`<span class="success">✓ Product Expo Winner 2025 — Webknot Technologies</span>`);
+  appendLine(`<span class="success">✓ DAC Scholarship — PES University (7.8 CGPA)</span>`, 'gap');
+}
+
+function cmdEducation() {
+  const rows = [
+    ['institution','PES University, Bengaluru'],
+    ['degree','B.Tech in Computer Science and Engineering'],
+    ['cgpa','<span style="color:var(--green)">7.8 / 10</span>'],
+    ['period','2021 – 2025'],
+    ['coursework','DSA · OOP · DBMS · Computer Networks · Distributed Systems'],
+    ['scholarship','<span style="color:var(--yellow)">DAC Scholarship — strong academic performance</span>'],
+    ['award','<span style="color:var(--yellow)">Product Expo Winner 2025 — Webknot Technologies</span>'],
+  ];
+  rows.forEach(([k,v]) => appendLine(`<div class="kv"><span class="k">${k}</span><span class="v">${v}</span></div>`));
+  appendLine('','gap');
+}
+
+function cmdContact() {
+  appendLine(`<span class="success">ready to connect — choose your channel:</span>`);
+  appendLine(`<div class="kv" style="margin-top:8px"><span class="k">email</span><span class="v"><a href="mailto:kvirupakshi047@gmail.com">kvirupakshi047@gmail.com</a></span></div>`);
+  appendLine(`<div class="kv"><span class="k">phone</span><span class="v">+91-9019341637</span></div>`);
+  appendLine(`<div class="kv"><span class="k">linkedin</span><span class="v"><a href="https://linkedin.com/in/virupakshi-k" target="_blank">linkedin.com/in/virupakshi-k</a></span></div>`);
+  appendLine(`<div class="kv"><span class="k">github</span><span class="v"><a href="https://github.com/Virupakshi047" target="_blank">github.com/Virupakshi047</a></span></div>`);
+  appendLine(`<div class="kv"><span class="k">leetcode</span><span class="v"><a href="https://leetcode.com/Virupakshi_K_047" target="_blank">Virupakshi_K_047</a></span></div>`);
+  appendLine('','gap');
+}
+
+function cmdClear() {
+  out.innerHTML = '';
+  showBoot();
+}
+
+function cmdLs() {
+  appendLine(`<span style="color:var(--cyan)">whoami</span>  <span style="color:var(--cyan)">skills</span>  <span style="color:var(--cyan)">experience</span>  <span style="color:var(--cyan)">projects</span>  <span style="color:var(--cyan)">stats</span>  <span style="color:var(--cyan)">education</span>  <span style="color:var(--cyan)">contact</span>`, 'gap');
+}
+
+function cmdPwd() {
+  appendLine(`<span class="out">/home/virupakshi/portfolio</span>`, 'gap');
+}
+
+function cmdDate() {
+  appendLine(`<span class="out">${new Date().toString()}</span>`, 'gap');
+}
+
+function cmdUname() {
+  appendLine(`<span class="out">PortfolioOS 2025.06 LTS · virupakshi-dev · JetBrains Mono · x86_64</span>`, 'gap');
+}
+
+function cmdEcho(args) {
+  appendLine(`<span class="out">${escHtml(args.join(' ').replace(/^["']|["']$/g,''))}</span>`, 'gap');
+}
+
+function showBoot() {
+  appendLine(`<span style="color:var(--green);font-weight:700;font-size:15px">virupakshi@dev</span> <span style="color:var(--gray)">— full-stack software engineer</span>`);
+  appendLine(`<span style="color:var(--gray);font-size:12px">bengaluru · webknot technologies · 1.5 yrs xp</span>`);
+  appendLine(`<span style="color:var(--gray);font-size:12px">────────────────────────────────────────</span>`);
+  appendLine(`<span style="color:var(--gray);font-size:12px">type <span style="color:var(--cyan)">help</span> for all commands  ·  <span style="color:var(--cyan)">Tab</span> to autocomplete  ·  <span style="color:var(--cyan)">↑↓</span> for history</span>`, 'gap');
+}
+
+function updateAutocomplete(val) {
+  if (!val) { acBox.style.display='none'; acMatches=[]; acIdx=-1; return; }
+  acMatches = CMD_NAMES.filter(c => c.startsWith(val) && c !== val);
+  if (!acMatches.length) { acBox.style.display='none'; acIdx=-1; return; }
+  acIdx = -1;
+  acBox.innerHTML = acMatches.map((c,i) =>
+    `<div class="ac-item" data-idx="${i}"><span class="ac-match">${val}</span>${c.slice(val.length)}</div>`
+  ).join('');
+  acBox.style.display='block';
+  acBox.querySelectorAll('.ac-item').forEach(el => {
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      inp.value = acMatches[+el.dataset.idx];
+      acBox.style.display='none';
+      inp.focus();
+    });
+  });
+}
+
+function highlightAc(idx) {
+  acBox.querySelectorAll('.ac-item').forEach((el,i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+}
+
+inp.addEventListener('input', () => {
+  updateAutocomplete(inp.value.trim().split(/\s+/)[0]);
+});
+
+inp.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    if (acMatches.length === 1) {
+      inp.value = acMatches[0];
+      acBox.style.display='none';
+    } else if (acMatches.length > 1) {
+      acIdx = (acIdx + 1) % acMatches.length;
+      highlightAc(acIdx);
+      inp.value = acMatches[acIdx];
+    }
+    return;
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (acBox.style.display==='block') {
+      acIdx = Math.max(0, acIdx-1);
+      highlightAc(acIdx);
+      inp.value = acMatches[acIdx];
+    } else {
+      if (histIdx < history.length-1) {
+        histIdx++;
+        inp.value = history[histIdx];
+      }
+    }
+    return;
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (acBox.style.display==='block') {
+      acIdx = Math.min(acMatches.length-1, acIdx+1);
+      highlightAc(acIdx);
+      inp.value = acMatches[acIdx];
+    } else {
+      if (histIdx > 0) {
+        histIdx--;
+        inp.value = history[histIdx];
+      } else {
+        histIdx = -1;
+        inp.value = '';
+      }
+    }
+    return;
+  }
+  if (e.key === 'Enter') {
+    acBox.style.display='none';
+    const v = inp.value;
+    inp.value = '';
+    acMatches = []; acIdx = -1;
+    execCmd(v);
+    return;
+  }
+  if (e.key === 'Escape') {
+    acBox.style.display='none';
+    return;
+  }
+  if (e.key === 'c' && e.ctrlKey) {
+    appendLine(ps1Html() + ` <span class="out">${escHtml(inp.value)} ^C</span>`);
+    inp.value = '';
+    acBox.style.display='none';
+    return;
+  }
+  if (e.key === 'l' && e.ctrlKey) {
+    e.preventDefault();
+    cmdClear();
+    return;
+  }
+});
+
+document.querySelectorAll('.hint-cmd').forEach(el => {
+  el.addEventListener('click', () => {
+    if (typing) return;
+    const cmd = el.dataset.cmd;
+    runWithAnimation(cmd, () => execCmd(cmd));
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!acBox.contains(e.target) && e.target !== inp) {
+    acBox.style.display='none';
+  }
+  if (e.target !== inp && !e.target.closest('a') && !e.target.closest('.hint-cmd')) {
+    inp.focus();
+  }
+});
+
+showBoot();
+inp.focus();
+</script>
+</body>
+</html>
